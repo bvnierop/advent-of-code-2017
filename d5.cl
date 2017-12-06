@@ -44,9 +44,9 @@
         (decf (aref (maze-arr maze) ptr))
         (incf (aref (maze-arr maze) ptr)))))
 
-(assert (= (day-five-part-one "day-five-test.txt") 5))
-(assert (= (day-five-part-two "day-five-test.txt") 10))
+(assert (= (day-five-part-one "d5-test.txt") 5))
+(assert (= (day-five-part-two "d5-test.txt") 10))
 
-(print (day-five-part-one "day-five.txt"))
-(print (day-five-part-two "day-five.txt"))
+(print (day-five-part-one "d5.txt"))
+(print (day-five-part-two "d5.txt"))
 nil

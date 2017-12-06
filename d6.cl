@@ -50,9 +50,9 @@
   (solve input-file (lambda (hash banks cycle)
                       (- cycle (gethash (array-as-list banks) hash)))))
 
-(assert (= (day-six-part-one "day-six-test.txt") 5))
-(assert (= (day-six-part-two "day-six-test.txt") 4))
+(assert (= (day-six-part-one "d6-test.txt") 5))
+(assert (= (day-six-part-two "d6-test.txt") 4))
 
-(print (day-six-part-one "day-six.txt"))
-(print (day-six-part-two "day-six.txt"))
+(print (day-six-part-one "d6.txt"))
+(print (day-six-part-two "d6.txt"))
 nil

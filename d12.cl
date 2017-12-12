@@ -1,6 +1,10 @@
 (defun day-twelve (input-file)
-  (let ((adjacency-list (build-adjacency-list (parse-file input-file))))
-    (count-nodes-from 0 adjacency-list)))
+  (let* ((programs (parse-file input-file))
+         (adjacency-list (build-adjacency-list programs))
+         (seen (make-hash-table)))
+    (mark-connecting-nodes-seen 0 adjacency-list seen)
+    (list (hash-table-count seen)
+          (count-groups programs adjacency-list (make-hash-table)))))
 
 (defun parse-file (input-file)
   (with-open-file (f input-file :direction :input
@@ -31,15 +35,23 @@
         for res = (apply fn args)
         finally (return res)))
 
-(defun count-nodes-from (node-id adjacency-list)
-  (let ((seen (make-hash-table)))
-    (labels ((dfs (current-node-id)
-              (unless (gethash current-node-id seen)
-                (setf (gethash current-node-id seen) t)
-                (let ((children (gethash current-node-id adjacency-list nil)))
-                  (dolist (child children) (dfs child))))))
-    (dfs node-id))
-    (hash-table-count seen)))
+(defun mark-connecting-nodes-seen (node-id adjacency-list &optional (seen (make-hash-table)))
+  (labels ((dfs (current-node-id)
+             (unless (gethash current-node-id seen)
+               (setf (gethash current-node-id seen) t)
+               (let ((children (gethash current-node-id adjacency-list nil)))
+                 (dolist (child children) (dfs child))))))
+    (dfs node-id)))
+
+(defun count-groups (programs adjacency-list seen)
+  (loop for program in programs
+        for program-id = (first program)
+        with group-count = 0
+        unless (gethash program-id seen)
+        do (progn
+             (mark-connecting-nodes-seen program-id adjacency-list seen)
+             (incf group-count))
+        finally (return group-count)))
 
 (print (day-twelve "d12-test.txt"))
 (print (day-twelve "d12.txt"))

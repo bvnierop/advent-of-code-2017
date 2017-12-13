@@ -10,6 +10,7 @@
   (loop for (depth range) in layers
         summing (cost (+ wait depth) depth range) into trip-severity
         counting (caught-p (+ wait depth) range) into times-caught
+        until (and (plusp wait) (plusp times-caught))
         finally (return (list trip-severity times-caught))))
 
 (defun parse-input (input-file)

@@ -1,11 +1,47 @@
-(defun day-fourteen (input)
-  (let ((inputs (loop for i from 0 below 128
-                      for id = (concatenate 'string input "-" (write-to-string i))
-                      collect id)))
-    (apply #'+
-           (mapcar #'count-bits
-                   (flatten (mapcar #'make-hash
-                                    inputs))))))
+(defun day-fourteen-part-one (input)
+  (apply #'+ (mapcar #'count-bits
+                     (flatten (make-disk input)))))
+
+(defun day-fourteen-part-two (input)
+  (let ((disk (make-array (list 128 16) :initial-contents (make-disk input))))
+    (count-regions disk)))
+
+(defun count-regions (disk)
+  (let ((seen (make-hash-table)))
+    (loop for row from 0 below 128
+          sum (loop for column from 0 below 128
+                    when (used-p row column disk)
+                      counting (discover-region disk row column seen)))))
+
+(defun wat (disk)
+  (loop for row from 0 below 128
+        sum (loop for column from 0 below 128
+                  counting (used-p row column disk))))
+
+(defun cell-id (row column)
+  (+ (* row 1000) column))
+
+(defun discover-region (disk row column seen)
+  (unless (gethash (cell-id row column) seen)
+    (setf (gethash (cell-id row column) seen) t)
+    (loop for offset in '((1 0) (-1 0) (0 1) (0 -1))
+          for new-row = (+ row (first offset))
+          for new-column = (+ column (second offset))
+          when (and (>= new-row 0) (>= new-column 0) (< new-row 128) (< new-column 128)
+                    (used-p new-row new-column disk))
+            do (discover-region disk new-row new-column seen)
+          finally (return t))))
+
+(defun make-disk (key-string)
+  (let ((row-keys (loop for i from 0 below 128
+                        for id = (concatenate 'string key-string "-" (write-to-string i))
+                        collect id)))
+    (mapcar #'make-hash row-keys)))
+
+(defun used-p (row column disk)
+  (multiple-value-bind (part-index bit-index) (truncate column 8)
+    (let ((part (aref disk row part-index)))
+      (logbitp (- 8 bit-index 1) part))))
 
 (defun make-hash (str)
   (let ((arr (build-array 256))
@@ -73,9 +109,8 @@
                     (flatten x)))
             lst)))
 
-(print (make-hash ""))
-nil
-
-(print (day-fourteen "flqrgnkx"))
-(print (day-fourteen "nbysizxe"))
+(print (day-fourteen-part-one "flqrgnkx"))
+(print (day-fourteen-part-two "flqrgnkx"))
+(print (day-fourteen-part-one "nbysizxe"))
+(print (day-fourteen-part-two "nbysizxe"))
 nil

@@ -1,0 +1,106 @@
+(defun day-sixteen-part-one (input-file &optional (programs "abcdefghijklmnop"))
+  (let ((instructions (parse-file input-file)))
+    (do-dance (array-shift programs 0) instructions)))
+
+(defun day-sixteen-part-two (input-file &optional (programs "abcdefghijklmnop") (times 1000000000))
+  (let ((instructions (parse-file input-file))
+        (cache (make-hash-table))
+        (step-cache (make-hash-table))
+        (order (array-shift programs 0)))
+    (loop for i = 0 then (1+ i)
+          for sym = (intern (string-upcase order))
+          until (gethash sym cache)
+          do (setf (gethash sym cache) i)
+          do (setf (gethash i step-cache) (array-shift order 0))
+          do (setf order (do-dance order instructions))
+          finally (return (gethash (mod times (- i (gethash sym cache))) step-cache)))))
+
+(defun do-dance (programs instructions)
+  (let ((program-lookup (make-lookup programs)))
+    (loop for instruction in instructions
+          with offset = 0
+          do (setf offset (funcall instruction programs program-lookup offset))
+          finally (return (array-shift programs offset)))))
+
+(defun make-lookup (programs)
+  (let ((lookup (make-hash-table)))
+    (loop for i from 0 below (length programs)
+          do (setf (gethash (aref programs i) lookup) i)
+          finally (return lookup))))
+
+(defun parse-file (input-file)
+  (with-open-file (f input-file :direction :input
+                     :if-does-not-exist :error)
+    (loop for instruction = (read-instruction f)
+          for swallow-comma = (read-char f nil)
+          while instruction
+          collect instruction)))
+
+(defun read-instruction (fstream)
+  (let ((op (read-char fstream nil)))
+    (case op
+      (#\s (read-spin fstream))
+      (#\x (read-exchange fstream))
+      (#\p (read-partner fstream)))))
+
+(defun read-spin (fstream)
+  (let ((spin-distance (read-integer fstream)))
+    (lambda (programs program-lookup offset)
+      (declare (ignore programs program-lookup))
+      (+ offset spin-distance))))
+
+(defun read-exchange (fstream)
+  (let ((a (read-integer fstream))
+        (slash (read-char fstream))
+        (b (read-integer fstream)))
+    (declare (ignore slash))
+    (lambda (programs program-lookup offset)
+      (let* ((index-a (array-circular-index programs (- a offset)))
+             (index-b (array-circular-index programs (- b offset)))
+             (program-a (aref programs index-a))
+             (program-b (aref programs index-b)))
+        (rotatef (aref programs index-a)
+                 (aref programs index-b))
+        (setf (gethash program-a program-lookup) index-b)
+        (setf (gethash program-b program-lookup) index-a)
+        offset))))
+
+(defun read-partner (fstream)
+  (let ((program-a (read-char fstream))
+        (slash (read-char fstream))
+        (program-b (read-char fstream)))
+    (declare (ignore slash))
+    (lambda (programs program-lookup offset)
+      (let ((index-a (gethash program-a program-lookup))
+            (index-b (gethash program-b program-lookup)))
+        (rotatef (aref programs index-a)
+                 (aref programs index-b))
+        (setf (gethash program-a program-lookup) index-b)
+        (setf (gethash program-b program-lookup) index-a)
+        offset))))
+
+(defun array-circular-index (arr index &optional (axis-number 0))
+  (mod index (array-dimension arr axis-number)))
+
+(defun array-shift (arr amount)
+  (let ((new-array (make-array (array-dimensions arr)
+                               :element-type (array-element-type arr))))
+    (loop for i from 0 below (array-dimension arr 0)
+          do (setf (aref new-array (array-circular-index new-array (+ i amount)))
+                   (aref arr i))
+          finally (return new-array))))
+
+
+(defun read-integer (&optional (stream *standard-input*) (eof-error-p t) eof-value recursive-p)
+  (reduce (lambda (a b)
+            (+ (* a 10) b))
+          (loop for chr = (peek-char nil stream nil eof-value recursive-p)
+                while (and chr (digit-char-p chr))
+                collect (digit-char-p (read-char stream eof-error-p eof-value recursive-p)))
+          :initial-value 0))
+
+(print (day-sixteen-part-one "d16-test.txt" "abcde"))
+(print (day-sixteen-part-one "d16.txt"))
+(print (day-sixteen-part-two "d16-test.txt" "abcde" 7)) ; expect ecbda
+(print (day-sixteen-part-two "d16.txt"))
+nil
